@@ -1,28 +1,23 @@
 import os
 import google.generativeai as genai
-from deepeval.models.base_model import DeepEvalBaseLLM
+from deepeval.tracing import observe
 
-class Gemini2Flash(DeepEvalBaseLLM):
-    def __init__(self, model_name="gemini-2.0-flash"):
-        self.model_name = model_name
-        # This tells the code to find the key in GitHub's hidden settings
-        api_key = os.getenv("GOOGLE_API_KEY")
+class JiraAgent:
+    def __init__(self):
+        api_key = os.getenv("GOOGLE_API_KEY", "").strip().replace('"', '').replace("'", "")
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel("gemini-1.5-flash") # Use 1.5 Flash
+
+    @observe(type="tool")
+    def create_issue(self, project: str, summary: str, priority: str):
+        return {"status": "success", "issue_key": f"{project}-101"}
+
+    @observe()
+    def run(self, user_input: str):
+        prompt = f"System: Use create_issue tool. User: {user_input}"
+        # Standard generate call
+        response = self.model.generate_content(prompt)
         
-        if not api_key:
-            raise ValueError("GOOGLE_API_KEY is missing!")
-
-        # This cleanup helps avoid the 'Illegal Header' error
-        clean_key = api_key.strip().replace('"', '').replace("'", "")
-        genai.configure(api_key=clean_key)
-        self.model = genai.GenerativeModel(model_name)
-
-    def generate(self, prompt: str) -> str:
-        res = self.model.generate_content(prompt)
-        return res.text
-
-    async def a_generate(self, prompt: str) -> str:
-        res = await self.model.generate_content_async(prompt)
-        return res.text
-
-    def load_model(self): return self.model
-    def get_model_name(self): return self.model_name
+        # Simulating logic
+        self.create_issue(project="OPS", summary=user_input, priority="High")
+        return response.text

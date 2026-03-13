@@ -23,4 +23,5 @@ jobs:
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           PYTHONPATH: .
-        run: deepeval test run src/tests/test_jira_agent.py 
+        # Added --max-concurrent 1 to respect Free Tier limits
+        run: deepeval test run src/tests/test_jira_agent.py --max-concurrent 1
